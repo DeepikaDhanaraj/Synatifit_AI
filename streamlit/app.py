@@ -1492,10 +1492,23 @@ def send_progress_email(username, recipient_email):
         return "✅ Daily progress email sent successfully!"
     except Exception as e:
         return f"❌ Error sending email: {e}"
+import base64
+
+def get_base64_image(image_path):
+    with open(image_path, "rb") as file:
+        return base64.b64encode(file.read()).decode()
 
 if selected == "Daily Progress Email":
     st.title("📩 Send Daily Progress Email")
+    gif_path = "Daily progress.gif"  # Add the path to your GIF
+    gif_base64 = get_base64_image("send_email.gif")
 
+    st.markdown(
+        f"""
+        <img src="data:image/gif;base64,{gif_base64}" alt="GIF" style="height:400px; width:400;">
+        """,
+        unsafe_allow_html=True
+    )
     if st.session_state.username:
         email = st.text_input("Enter Recipient Email")
         if st.button("Send Progress Update"):
