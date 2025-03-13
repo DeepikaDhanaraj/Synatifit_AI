@@ -576,8 +576,7 @@ def homepage():
 if selected == 'Home':
     homepage()
 
-if selected == "AI Coach":
-    text_ai_coach()
+
 
 # Defining CSS file
 def local_css(file_name):
