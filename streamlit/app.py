@@ -363,39 +363,6 @@ def speak(text):
     tts.save("response.mp3")
     os.system("start response.mp3")  # Play the audio file
     time.sleep(1)
-# Text-Based AI Coach
-def text_ai_coach():
-    st.title("📝 AI Coach (Text-Based)")
-    st.write("Type your request below to get workout guidance, meal suggestions, and hydration tracking.")
-
-    # Available commands
-    st.write("**Available Commands:**")
-    st.write("- 'Start workout'")
-    st.write("- 'Suggest a meal'")
-    st.write("- 'Track hydration'")
-    st.write("- 'Stop'")
-
-    # User Input (Text)
-    user_input = st.text_input("Enter your command:", "")
-
-    if st.button("Submit"):
-        if user_input:
-            command = user_input.lower()
-            if "start workout" in command:
-                response = "Starting your workout. Let's begin with 10 squats."
-            elif "suggest a meal" in command:
-                response = "I suggest a healthy salad with grilled chicken for lunch."
-            elif "track hydration" in command:
-                response = "How many glasses of water have you had today?"
-            elif "3" in command :
-                response  = "Good, Can drink more Water."
-            elif "stop" in command:
-                response = "Stopping the AI Coach. Have a great day!"
-            else:
-                response = "Sorry, I didn't understand that command. Please try again."
-
-            st.write(f"**AI Coach:** {response}")
-            speak(response)  # Convert response to speech
 
 
 # Side bar initialization and creation
@@ -944,16 +911,30 @@ def Health_tips():
 
     # Display the tip text in a styled box
     st.markdown(
-        f'<div style="background-color: #F0F2F6; padding: 15px; border-radius: 10px; text-align: center;">'
-        f'{current_tip["text"]}</div>',
+        f'''
+            <div style="
+                background-color: #F0F2F6; 
+                padding: 15px; 
+                border-radius: 10px; 
+                text-align: center;
+                color: #333;  /* Dark gray text */
+                font-size: 18px;">
+                {current_tip["text"]}
+            </div>
+            ''',
         unsafe_allow_html=True
     )
 
     # Add spacing between text box and image
     st.markdown("<br>", unsafe_allow_html=True)
-
+    # Display Image
+    if os.path.exists(current_tip["image"]):
+        st.image(current_tip["image"], width=500)
+    else:
+        st.warning(f"⚠ Image not found: {current_tip['image']}")
+        st.image("https://via.placeholder.com/500", width=500)
     # Display the image with fixed width for uniform size
-    st.image(current_tip["image"], width=500)  # Adjust width as needed
+    #st.image(current_tip["image"], width=500)  # Adjust width as needed
 
 
 if selected == "Health Tips":
@@ -1093,6 +1074,93 @@ if selected == 'Workout Suggestion':
                          labels={"Workout Count": "Number of Exercises"},
                          color="Workout Count", height=400)
             st.plotly_chart(fig)
+
+def text_ai_coach():
+    st.title("📝 AI Coach (Text-Based)")
+    st.write("Type your request below to get personalized workout guidance, meal suggestions, and hydration tracking.")
+
+    # Fetch user data
+    user_data = fetch_user_data(st.session_state.username)
+    if user_data:
+        age, level = user_data[0][2], user_data[0][3]
+    else:
+        age, level = 25, "beginner"  # Default values if no user data is found
+
+    # Available commands
+    st.write("**Available Commands:**")
+    st.write("- 'Start workout'")
+    st.write("- 'Suggest a meal'")
+    st.write("- 'Track hydration'")
+    st.write("- 'Stop'")
+
+    # User Input (Text)
+    user_input = st.text_input("Enter your command:", "")
+
+    if st.button("Submit"):
+        if user_input:
+            command = user_input.lower()
+            if "start workout" in command:
+                # Generate workout plan based on user's fitness level
+                workout_plan = generate_workout(level)
+                response = f"Starting your workout. Here's your personalized plan based on your level ({level}):\n"
+                for day, exercises in workout_plan.items():
+                    response += f"\n{day}:\n"
+                    for exercise in exercises:
+                        response += f"- {exercise}\n"
+                st.session_state.workout_plan = workout_plan  # Save workout plan in session state
+
+            elif "suggest a meal" in command:
+                # Fetch dish data to suggest a meal based on user's fitness level
+                dishes = fetch_dish_data()
+                if dishes:
+                    if level == "beginner":
+                        dish = dishes[0]  # Example: Suggest the first dish for beginners
+                    elif level == "intermediate":
+                        dish = dishes[1]  # Example: Suggest the second dish for intermediate users
+                    else:
+                        dish = dishes[2]  # Example: Suggest the third dish for advanced users
+
+                    response = f"I suggest a healthy meal: **{dish[1]}**.\n\n"
+                    response += f"**Nutrition:** {dish[3]}\n"
+                    response += f"**Recipe:** {dish[4]}\n"
+                    response += f"**Steps:** {dish[5]}"
+                else:
+                    response = "I suggest a healthy salad with grilled chicken for lunch."
+
+            elif "track hydration" in command:
+                response = "How many glasses of water have you had today?"
+                st.session_state.hydration_tracking = True  # Enable hydration tracking mode
+
+            elif st.session_state.get("hydration_tracking", False):
+                # If hydration tracking mode is active, process the number of glasses
+                try:
+                    glasses = int(user_input)
+                    if glasses < 0:
+                        response = "Please enter a valid number of glasses (0 or more)."
+                    elif glasses == 0:
+                        response = "You haven't had any water today. It's important to stay hydrated! Start with a glass now."
+                    elif 1 <= glasses <= 3:
+                        response = f"You've had {glasses} glasses of water today. That's a good start, but try to drink more to stay hydrated!"
+                    elif 4 <= glasses <= 6:
+                        response = f"Great job! You've had {glasses} glasses of water today. Keep it up!"
+                    elif 7 <= glasses <= 8:
+                        response = f"Awesome! You've had {glasses} glasses of water today. You're on track to meet your daily hydration goal!"
+                    else:
+                        response = f"Wow! You've had {glasses} glasses of water today. Make sure not to overhydrate—listen to your body."
+                    st.session_state.hydration_tracking = False  # Disable hydration tracking mode after response
+                except ValueError:
+                    response = "Please enter a valid number of glasses."
+
+            elif "stop" in command:
+                response = "Stopping the AI Coach. Have a great day!"
+            else:
+                response = "Sorry, I didn't understand that command. Please try again."
+
+            st.write(f"**AI Coach:** {response}")
+            speak(response)  # Convert response to speech
+
+if selected == 'AI Coach':
+    text_ai_coach()
 
 # For Medicine Recommender
 if selected == 'Medicine Recommender':
