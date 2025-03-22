@@ -1074,7 +1074,38 @@ if selected == 'Workout Suggestion':
                              labels={"Workout Count": "Number of Exercises"}, color="Workout Count", height=400)
                 st.plotly_chart(fig)
 
+import pyttsx3  # For text-to-speech
+import streamlit as st
+from Custom_Diet import get_suggestion
 
+
+def preprocess_text(text):
+    """
+    Preprocesses the text to remove unwanted symbols and ensure readability.
+    """
+    # Replace semicolons and other unwanted symbols with spaces or remove them
+    text = text.replace(';', ' ').replace(',', ' ').replace('  ', ' ')  # Replace double spaces with single space
+    return text.strip()  # Remove leading/trailing spaces
+
+
+def speak(text):
+    """
+    Converts the given text to speech using pyttsx3.
+    """
+    # Preprocess the text to remove unwanted symbols
+    clean_text = preprocess_text(text)
+
+    # Initialize the TTS engine
+    engine = pyttsx3.init()
+
+    # Set properties (optional)
+    engine.setProperty('rate', 150)  # Speed of speech
+    engine.setProperty('volume', 1.0)  # Volume level (0.0 to 1.0)
+
+    # Convert text to speech
+    engine.say(clean_text)
+    engine.runAndWait()
+# Text-Based AI Coach
 def text_ai_coach():
     st.title("📝 AI Coach (Text-Based)")
     st.write("Type your request below to get personalized workout guidance, meal suggestions, and hydration tracking.")
@@ -1104,26 +1135,35 @@ def text_ai_coach():
                 workout_plan = generate_workout(level)
                 response = f"Starting your workout. Here's your personalized plan based on your level ({level}):\n"
                 for day, exercises in workout_plan.items():
-                    response += f"\n{day}:\n"
-                    for exercise in exercises:
-                        response += f"- {exercise}\n"
+                    if day == "Sunday":  # Special message for Sunday
+                        response += f"\n{day}:\n"
+                        response += (
+                            "🌞 Sunday is all about **rest, reflection, and recharging**! 🌞\n"
+                            "Take this day to relax and focus on self-care. Here are some ideas:\n"
+                            "- Go for a light walk in nature.\n"
+                            "- Reflect on your achievements from the past week.\n"
+                            "- Plan your goals for the upcoming week.\n"
+                            "- Practice mindfulness or meditation.\n"
+                            "- Spend time with loved ones or enjoy a hobby.\n"
+                            "Remember: 'Rest when you're weary. Refresh and renew yourself, your body, your mind, your spirit. Then get back to work.' – Ralph Marston\n"
+                        )
+                    else:  # Workout plan for other days
+                        response += f"\n{day}:\n"
+                        for exercise in exercises:
+                            response += f"- {exercise}\n"
                 st.session_state.workout_plan = workout_plan  # Save workout plan in session state
 
             elif "suggest a meal" in command:
-                # Fetch dish data to suggest a meal based on user's fitness level
-                dishes = fetch_dish_data()
-                if dishes:
-                    if level == "beginner":
-                        dish = dishes[0]  # Example: Suggest the first dish for beginners
-                    elif level == "intermediate":
-                        dish = dishes[1]  # Example: Suggest the second dish for intermediate users
-                    else:
-                        dish = dishes[2]  # Example: Suggest the third dish for advanced users
-
-                    response = f"I suggest a healthy meal: **{dish[1]}**.\n\n"
-                    response += f"**Nutrition:** {dish[3]}\n"
-                    response += f"**Recipe:** {dish[4]}\n"
-                    response += f"**Steps:** {dish[5]}"
+                # Call the get_suggestion function with the correct arguments
+                meal_suggestion = get_suggestion(df, n=1)  # Pass the dataset (df) and number of suggestions (n=1)
+                if not meal_suggestion.empty:
+                    response = (
+                        f"Here's a personalized meal suggestion for you (based on your level: {level}):\n\n"
+                        f"**Meal Name:** {meal_suggestion.iloc[0]['Dish Name']}\n"
+                        f"**Calories:** {meal_suggestion.iloc[0]['Calories']}\n"
+                        f"**Ingredients:** {meal_suggestion.iloc[0]['Ingredients']}\n"
+                        f"**Instructions:** {meal_suggestion.iloc[0]['Instructions']}"
+                    )
                 else:
                     response = "I suggest a healthy salad with grilled chicken for lunch."
 
@@ -1156,8 +1196,11 @@ def text_ai_coach():
             else:
                 response = "Sorry, I didn't understand that command. Please try again."
 
+            # Display the response
             st.write(f"**AI Coach:** {response}")
-            speak(response)  # Convert response to speech
+
+            # Speak the response (after preprocessing)
+            speak(response)
 
 if selected == 'AI Coach':
     text_ai_coach()
