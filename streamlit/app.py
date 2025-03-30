@@ -1164,7 +1164,7 @@ if selected == 'AI Coach':
 
 # For Medicine Recommender
 if selected == 'Medicine Recommender':
-    main_1()
+    main()
 
 # For custom food recommendations
 if selected == 'Diet':
